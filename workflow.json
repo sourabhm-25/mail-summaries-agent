@@ -1,0 +1,315 @@
+{
+  "name": "Mail Summaries",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ],
+          "q": "is:unread",
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "eb4f62d6-f941-4add-b876-30bccb6dee7a",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "EMcfZGaxQ5Lw15IR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ad107e15-d52d-417a-8469-237404d6c5ca",
+              "name": "subject",
+              "value": "={{ $json.subject }}\n",
+              "type": "string"
+            },
+            {
+              "id": "55c0e22a-4b24-469a-9e44-5fd3f6718171",
+              "name": "body",
+              "value": "={{ $json.text }}\n",
+              "type": "string"
+            },
+            {
+              "id": "d8274ea3-1730-489b-85be-9a468fe0d2bd",
+              "name": "from",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "389331ae-848f-4998-8f33-253eb6f8a53a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer GROP-CLOUD_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \nJSON.stringify({\n  model: \"llama3-70b-8192\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"Summarize this email:\\n\\nFrom: \" + $json.from + \"\\nSubject: \" + $json.subject + \"\\nBody: \" + $json.body\n    }\n  ]\n})\n}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "d2613e04-009c-4fc8-9614-a9de9591d49c",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Summaries",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Summaries",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toISO().split(\"T\")[0] }}",
+            "From": "={{ $node[\"Gmail Trigger\"].json[\"from\"][\"value\"][0][\"address\"] }}\n",
+            "Subject": "={{ $node[\"Gmail Trigger\"].json[\"subject\"] }}\n",
+            "Summary": "={{ $node[\"HTTP Request\"].json[\"choices\"][0][\"message\"][\"content\"] }}\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "From",
+              "displayName": "From",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        660,
+        0
+      ],
+      "id": "f6d6ed1d-97f5-453e-8227-084ef48ca2ee",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NXnZBg6H4iuzv2JL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer GROP-CLOUD_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n\"model\": \"llama3-8b-8192\",\n\"messages\": [\n{ \"role\": \"system\", \"content\": \"You are a professional assistant. Write only the reply email content, suitable for any incoming message. Do not include greetings like 'Dear [Name]' or placeholders. Write directly, clearly, and professionally. Conclude with 'Best regards, Sourabh'.\" },\n{ \"role\": \"user\", \"content\": \"Write a professional reply to the following email:\\n\\nFrom: \" + $('Gmail Trigger').item.json.from.value[0].address + \"\\nSubject: \" + $('Gmail Trigger').item.json.subject + \"\\nBody: \" + $('Gmail Trigger').item.json.text + \"\\n\" }\n]\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        0
+      ],
+      "id": "6f067a73-7f09-4d3f-b127-c7a86f483cb7",
+      "name": "HTTP Reply Generator"
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "message": "={{ $json.choices[0].message.content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1060,
+        0
+      ],
+      "id": "ebcfe319-e7c4-40fc-bd88-30b95d40461a",
+      "name": "Gmail",
+      "webhookId": "912d95f3-bcfa-4a61-b64b-49132a8a40a2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5e1bmS8M2KNd6kEX",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "HTTP Reply Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Reply Generator": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Gmail Trigger": {
+      "Gmail Trigger": {
+        "lastTimeChecked": 1751363543
+      }
+    }
+  },
+  "pinData": {},
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
