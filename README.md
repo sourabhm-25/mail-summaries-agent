@@ -60,7 +60,7 @@ graph TD
 1. **Clone This Repo**
 
    ```bash
-   git clone https://github.com/your-username/mail-summaries-agent.git
+   git clone https://github.com/sourabhm-25/mail-summaries-agent.git
    cd mail-summaries-agent
    ```
 
